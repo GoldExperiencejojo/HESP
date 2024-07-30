@@ -2,7 +2,7 @@
 
 ------
 
-##### Accepted by ACM MM2024
+#### Accepted by ACM MM2024
 
 ![](images/framework.png)
 
@@ -10,4 +10,5 @@ The pipeline of  HESP for OV-FER. HESP first combines textual and visual prompti
 
 ------
 
-###### We will upload the code as soon as possible.
+#### We will upload the code as soon as possible.
+
