@@ -19,7 +19,7 @@ The pipeline of  HESP for OV-FER. HESP first combines textual and visual prompti
 
 ## Train
 
-#### Datasets
+### Datasets
 
 In the paper, we introduced 4 Open-Set FER tasks using **AFEW** and **MAFW** datasets, as detailed in Sec. 4.1.2, and an additional task on the large dataset **DFEW**, please refer to Sec. 4.3.4 for details.
 
