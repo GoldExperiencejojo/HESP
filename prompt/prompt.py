@@ -187,14 +187,11 @@ class PromptCLIP(torch.nn.Module):
         self.clip_model = clip_model
         self.prompt_learner = PromptLearner(self.clip_model, classnames)
         
-        unkonwn_prompt_text = ['not ' + word.lower() for word in classnames]
-        self.unknown_prompt_learner = PromptLearner(self.clip_model, unkonwn_prompt_text)
         self.image_encoder = self.clip_model.encode_image
         self.text_encoder = self.clip_model.encode_text
         self.logit_scale = self.clip_model.logit_scale
         self.dtype = self.clip_model.dtype
         self.fc = nn.Linear(512, len(classnames)).cuda()
-        print()
         
 
     def forward(self, images,b=None,t=None):
