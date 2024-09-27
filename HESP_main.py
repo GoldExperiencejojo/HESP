@@ -248,15 +248,11 @@ def main_worker(options):
     for epoch in range(options['max_epoch']):
         print("==> Epoch {}/{}".format(epoch+1, options['max_epoch']))
         if epoch == 0:
-            _, logits_list, [cy,cx] = train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, contrastive_loss, optimizer, trainloader, epoch=epoch, **options) ###没有net了 现在net就是prompt
+            _, logits_list, [cy,cx] = train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, contrastive_loss, optimizer, trainloader, epoch=epoch, **options)
             options['patch_position'] = [cy,cx]
         else:
-            _, logits_list = train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, contrastive_loss, optimizer, trainloader, epoch=epoch, **options) ###没有net了 现在net就是prompt
-        train_pros = [item for sublist in logits_list for item in sublist]
-        train_pros.sort(reverse=True)
-        pro_index = int(len(train_pros) * 0.95)
-        threshold = train_pros[pro_index]
-        options['threshold'] = threshold
+            _, logits_list = train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, contrastive_loss, optimizer, trainloader, epoch=epoch, **options)
+
         if options['eval_freq'] > 0 and (epoch+1) % options['eval_freq'] == 0 or (epoch+1) == options['max_epoch']:
             print("==> Test", options['loss'])
             results_e = test(prompt, normalization, criterion, testloader, outloader, epoch=epoch, **options)
