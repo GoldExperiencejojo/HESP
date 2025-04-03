@@ -1,0 +1,249 @@
+8：3
+known = [2, 3, 6, 0, 7, 9, 10, 1]
+unknown = [8, 4, 5]
+img_size = 224
+************************
+*********** MAFW Dataset Fold   ***********
+Currently using GPU: 0
+MAFW Preparation
+video number:2331
+video number:582
+video number:440
+
+==> Epoch 100/100
+Batch 20/37	 Loss 6.499597 (6.435516)
+clip_loss_k: 1.6533203125	c_loss: 2.0638740062713623	osr_loss: 1.3225876092910767	clip_loss_unclass: 0.1007080078125	e_loss: 1.3591070175170898
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     8.409 55.885 55.028 63.248 48.663
+Acc_close (%): 48.969	 AUROC (%): 55.885	 OSCR (%): 31.026
+
+known = [0, 7, 6, 9, 2, 4, 5, 1]
+unknown = [8, 10, 3]
+
+==> Epoch 100/100
+Batch 20/45	 Loss 7.469017 (6.653546)
+clip_loss_k: 1.859375	c_loss: 2.0706357955932617	osr_loss: 1.7655121088027954	clip_loss_unclass: 0.0285186767578125	e_loss: 1.7449755668640137
+Batch 40/45	 Loss 5.898608 (6.581192)
+clip_loss_k: 1.3525390625	c_loss: 2.063015937805176	osr_loss: 1.206108808517456	clip_loss_unclass: 0.062103271484375	e_loss: 1.2148411273956299
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     4.088 41.672 50.436 63.342 27.487
+Acc_close (%): 52.557	 AUROC (%): 41.672	 OSCR (%): 25.077
+
+known = [5, 4, 8, 0, 10, 3, 6, 1]
+unknown = [9, 2, 7]
+
+==> Epoch 100/100
+Batch 20/58	 Loss 6.766516 (6.419474)
+clip_loss_k: 1.6201171875	c_loss: 2.0601048469543457	osr_loss: 1.539829134941101	clip_loss_unclass: 0.032501220703125	e_loss: 1.5139635801315308
+Batch 40/58	 Loss 5.634303 (6.293387)
+clip_loss_k: 1.2998046875	c_loss: 2.047102451324463	osr_loss: 1.113917589187622	clip_loss_unclass: 0.0307159423828125	e_loss: 1.1427618265151978
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     8.421 57.854 57.111 93.142 11.725
+Acc_close (%): 58.576	 AUROC (%): 57.854	 OSCR (%): 38.121
+
+known = [2, 9, 6, 1, 0, 8, 3, 4]
+unknown = [10, 5, 7]
+
+==> Epoch 100/100
+Batch 20/54	 Loss 6.759775 (6.764067)
+clip_loss_k: 1.693359375	c_loss: 2.0633351802825928	osr_loss: 1.5071958303451538	clip_loss_unclass: 0.01593017578125	e_loss: 1.479954481124878
+Batch 40/54	 Loss 6.571001 (6.789787)
+clip_loss_k: 1.6650390625	c_loss: 2.0631871223449707	osr_loss: 1.38789701461792	clip_loss_unclass: 0.0416259765625	e_loss: 1.413251519203186
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas    15.951 69.742 65.871 91.833 32.483
+Acc_close (%): 49.010	 AUROC (%): 69.742	 OSCR (%): 37.179
+
+known = [4, 2, 5, 8, 1, 9, 6, 3]
+unknown = [0, 10, 7]
+
+==> Epoch 100/100
+Batch 20/56	 Loss 6.056554 (6.434450)
+clip_loss_k: 1.5068359375	c_loss: 2.0547149181365967	osr_loss: 1.2315771579742432	clip_loss_unclass: 0.01538848876953125	e_loss: 1.2480370998382568
+Batch 40/56	 Loss 6.337827 (6.488357)
+clip_loss_k: 1.654296875	c_loss: 2.0544118881225586	osr_loss: 1.2780215740203857	clip_loss_unclass: 0.0173187255859375	e_loss: 1.3337777853012085
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     4.724 52.946 54.561 88.860 13.100
+Acc_close (%): 53.408	 AUROC (%): 52.946	 OSCR (%): 32.153
+
+AUROC 平均值：55.62
+OSCR 平均值：32.71
+
+6：5
+known = [5, 2, 3, 8, 9, 4]
+unknown = [0, 1, 6, 7, 10]
+
+==> Epoch 100/100
+Batch 20/46	 Loss 5.961843 (5.413815)
+clip_loss_k: 1.4306640625	c_loss: 2.055269241333008	osr_loss: 1.2440910339355469	clip_loss_unclass: 0.026275634765625	e_loss: 1.205542802810669
+Batch 40/46	 Loss 5.194410 (5.388304)
+clip_loss_k: 1.279296875	c_loss: 2.0558135509490967	osr_loss: 0.8891382217407227	clip_loss_unclass: 0.013458251953125	e_loss: 0.9567025899887085
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     6.463 64.316 61.607 82.234 37.797
+Acc_close (%): 66.758	 AUROC (%): 64.316	 OSCR (%): 47.411
+
+known = [10, 4, 8, 9, 0, 5]
+unknown = [1, 2, 3, 6, 7]
+
+==> Epoch 100/100
+Batch 20/36	 Loss 5.384051 (5.518885)
+clip_loss_k: 1.177734375	c_loss: 2.058699131011963	osr_loss: 1.0379852056503296	clip_loss_unclass: 0.033599853515625	e_loss: 1.0760326385498047
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     4.677 50.851 52.399 58.079 45.077
+Acc_close (%): 57.941	 AUROC (%): 50.851	 OSCR (%): 33.997
+
+known = [6, 9, 1, 10, 7, 2]
+unknown = [0, 3, 4, 5, 8]
+
+==> Epoch 100/100
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas    12.048 57.694 57.598 32.586 79.422
+Acc_close (%): 53.818	 AUROC (%): 57.694	 OSCR (%): 32.394
+
+known = [9, 10, 5, 4, 1, 2]
+unknown = [0, 3, 6, 7, 8]
+
+==> Epoch 100/100
+Batch 20/32	 Loss 4.512760 (5.121999)
+clip_loss_k: 0.89306640625	c_loss: 2.0430212020874023	osr_loss: 0.7132628560066223	clip_loss_unclass: 0.09466552734375	e_loss: 0.7687439322471619
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     8.829 55.555 54.711 53.626 57.297
+Acc_close (%): 69.461	 AUROC (%): 55.555	 OSCR (%): 42.441
+
+known = [2, 4, 7, 10, 1, 0]
+unknown = [3, 5, 6, 8, 9]
+
+==> Epoch 100/100
+Batch 20/29	 Loss 5.216794 (5.479260)
+clip_loss_k: 1.0927734375	c_loss: 2.0605130195617676	osr_loss: 1.0264772176742554	clip_loss_unclass: 0.01556396484375	e_loss: 1.0214664936065674
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas    10.302 57.548 57.467 50.682 62.820
+Acc_close (%): 62.092	 AUROC (%): 57.548	 OSCR (%): 38.289
+
+AUROC 平均值：57.19
+OSCR 平均值：38.91
+
+5：6
+known = [8, 0, 4, 3, 6]
+unknown = [1, 2, 5, 7, 9, 10]
+
+==> Epoch 100/100
+Batch 20/46	 Loss 5.170519 (5.534909)
+clip_loss_k: 1.111328125	c_loss: 2.0612716674804688	osr_loss: 1.00137460231781	clip_loss_unclass: 0.0166015625	e_loss: 0.9799434542655945
+Batch 40/46	 Loss 5.421443 (5.532950)
+clip_loss_k: 1.25	c_loss: 2.0623016357421875	osr_loss: 1.0249143838882446	clip_loss_unclass: 0.0277862548828125	e_loss: 1.0564404726028442
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     7.047 57.434 57.247 77.699 33.639
+Acc_close (%): 59.807	 AUROC (%): 57.434	 OSCR (%): 38.306
+
+known = [4, 1, 6, 3, 2]
+unknown = [0, 5, 7, 8, 9, 10]
+
+==> Epoch 100/100
+Batch 20/41	 Loss 4.761403 (5.171109)
+clip_loss_k: 0.9658203125	c_loss: 2.0594308376312256	osr_loss: 0.8824753165245056	clip_loss_unclass: 0.0132293701171875	e_loss: 0.8404467105865479
+Batch 40/41	 Loss 5.228093 (5.167355)
+clip_loss_k: 1.177734375	c_loss: 2.065735340118408	osr_loss: 0.9778465628623962	clip_loss_unclass: 0.0243988037109375	e_loss: 0.9823778867721558
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas    17.027 69.825 64.949 80.649 55.151
+Acc_close (%): 65.031	 AUROC (%): 69.825	 OSCR (%): 47.591
+
+known = [1, 10, 3, 7, 4]
+unknown = [0, 2, 5, 6, 8, 9]
+
+==> Epoch 100/100
+Batch 20/35	 Loss 4.745376 (4.822330)
+clip_loss_k: 0.93505859375	c_loss: 2.0636117458343506	osr_loss: 0.9008163213729858	clip_loss_unclass: 0.0135650634765625	e_loss: 0.8323245644569397
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas    15.433 63.243 60.523 64.203 61.068
+Acc_close (%): 69.581	 AUROC (%): 63.243	 OSCR (%): 46.224
+
+known = [0, 5, 2, 6, 8]
+unknown = [1, 3, 4, 7, 9, 10]
+
+==> Epoch 100/100
+Batch 20/28	 Loss 5.665177 (5.857418)
+clip_loss_k: 1.3095703125	c_loss: 2.0639305114746094	osr_loss: 1.1065409183502197	clip_loss_unclass: 0.0220947265625	e_loss: 1.1630408763885498
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     0.862 45.293 52.411 43.403 50.846
+Acc_close (%): 48.416	 AUROC (%): 45.293	 OSCR (%): 26.076
+
+known = [2, 5, 10, 0, 4]
+unknown = [1, 3, 6, 7, 8, 9]
+
+==> Epoch 100/100
+Batch 20/31	 Loss 4.660003 (4.655480)
+clip_loss_k: 0.90380859375	c_loss: 2.0501303672790527	osr_loss: 0.8198187351226807	clip_loss_unclass: 0.055450439453125	e_loss: 0.8307943940162659
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     8.144 51.541 53.728 48.966 54.969
+Acc_close (%): 68.623	 AUROC (%): 51.541	 OSCR (%): 39.045
+
+AUROC 平均值：57.07
+OSCR 平均值：39.05
+
+3：8
+known = [2, 8, 9]
+unknown = [0, 1, 3, 4, 5, 6, 7, 10]
+
+==> Epoch 100/100
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     4.277 55.008 56.922 19.326 85.834
+Acc_close (%): 66.242	 AUROC (%): 55.008	 OSCR (%): 37.558
+
+known = [6, 2, 4]
+unknown = [0, 1, 3, 5, 7, 8, 9, 10]
+
+==> Epoch 100/100
+Batch 20/24	 Loss 3.996984 (3.885626)
+clip_loss_k: 0.708984375	c_loss: 2.0618386268615723	osr_loss: 0.5997807383537292	clip_loss_unclass: 0.00931549072265625	e_loss: 0.6170649528503418
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     6.126 56.323 55.397 42.738 67.925
+Acc_close (%): 76.694	 AUROC (%): 56.323	 OSCR (%): 46.162
+
+known = [1, 10, 2]
+unknown = [0, 3, 4, 5, 6, 7, 8, 9]
+
+==> Epoch 100/100
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     6.740 50.092 52.598 12.625 88.858
+Acc_close (%): 76.068	 AUROC (%): 50.092	 OSCR (%): 37.860
+
+known = [1, 5, 3]
+unknown = [0, 2, 4, 6, 7, 8, 9, 10]
+
+==> Epoch 100/100
+Batch 20/26	 Loss 4.042213 (3.689452)
+clip_loss_k: 0.69091796875	c_loss: 2.054931640625	osr_loss: 0.6712765693664551	clip_loss_unclass: 0.0081024169921875	e_loss: 0.6169845461845398
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     7.329 69.942 65.446 64.806 72.462
+Acc_close (%): 81.373	 AUROC (%): 69.942	 OSCR (%): 61.214
+
+known = [10, 5, 6]
+unknown = [0, 1, 2, 3, 4, 7, 8, 9]
+
+==> Epoch 100/100
+==> Test MYARPLoss
+       TNR    AUROC  DTACC  AUIN   AUOUT
+Bas     8.951 58.600 56.828 34.473 81.353
+Acc_close (%): 82.917	 AUROC (%): 58.600	 OSCR (%): 50.044
+
+AUROC 平均值：58.39
+OSCR 平均值：46.17

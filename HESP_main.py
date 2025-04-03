@@ -1,4 +1,7 @@
 import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+# print("os.environ['CUDA_LAUNCH_BLOCKING']=" + os.environ['CUDA_LAUNCH_BLOCKING'])
+# os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 import argparse
 import datetime
 import time
@@ -24,8 +27,8 @@ from datasets.dataset_MAFW import train_data_loader, test_data_loader, out_data_
 parser = argparse.ArgumentParser("Training")
 
 # Dataset
-parser.add_argument('--dataset', type=str, default='', help="AFEW | MAFW | OURDATA | MULTIDATA | DFEW")
-parser.add_argument('--dataroot', type=str, default='./data')
+parser.add_argument('--dataset', type=str, default='MAFW', help="AFEW | MAFW | OURDATA | MULTIDATA | DFEW")
+parser.add_argument('--dataroot', type=str, default='/home/suyf/datasets/MAFW')
 parser.add_argument('--outf', type=str, default='./log')
 parser.add_argument('--workers', type=int, default=4, help='workers')
 
@@ -46,13 +49,36 @@ parser.add_argument('--model', type=str, default='HESP')
 parser.add_argument('--eval-freq', type=int, default=1)
 parser.add_argument('--print-freq', type=int, default=20)
 parser.add_argument('--gpu', type=str, default='0')
-parser.add_argument('--seed', type=int, default=0)
+parser.add_argument('--seed', type=int, default=10)
 parser.add_argument('--use-cpu', action='store_true')
 parser.add_argument('--save-dir', type=str, default='../log')
 parser.add_argument('--loss', type=str, default='MYARPLoss')
 parser.add_argument('--eval', action='store_true', help="Eval", default=False)
 
+# 获取当前时间，格式化为 "YYYYMMDD_HHMMSS"
+now = datetime.datetime.now()
+timestamp = now.strftime("%y%m%d-%H%M")
+print("datetime is " + timestamp)
+
 def main_worker(options):
+    # now = datetime.datetime.now()
+    # time_str = now.strftime("%y%m%d-%H%M")
+    # print(time_str)
+
+    print('************************')
+    for k, v in options.items():
+        print(k, '=', v)
+    print('************************')
+
+    # with open(log_txt_path, 'a') as f:
+    #     for k, v in options.items():
+    #         f.write(str(k) + '=' + str(v) + '\n')
+
+    # print("*********** MAFW Dataset Fold  " + " ***********")
+    # log_txt_path = './log/' + 'MAFW-' + time_str + '-set'  + '-log.txt'
+    # checkpoint_path = './checkpoint/' + 'MAFW-' + time_str + '-set'  + '-model.pth'
+    # best_checkpoint_path = './checkpoint/' + 'MAFW-' + time_str + '-set'  + '-model_best.pth'
+
     torch.manual_seed(options['seed'])
     os.environ['CUDA_VISIBLE_DEVICES'] = options['gpu']
     use_gpu = torch.cuda.is_available()
@@ -70,6 +96,8 @@ def main_worker(options):
 
     # Dataset
     print("{} Preparation".format(options['dataset']))
+    # with open(log_txt_path, 'a') as f:
+    #     f.write("{} Preparation".format(options['dataset']))
     if 'AFEW' in options['dataset']:
         train_data = train_data_loader(known, unknown)
         test_data = test_data_loader(known, unknown)
@@ -182,7 +210,8 @@ def main_worker(options):
     classes_names.sort()
     options['classes_names']=classes_names
     clip_model = clip_model.cuda()
-    net0 = clip_model.cuda()
+    net0 = clip_model.cuda() # 同一个 CLIP 模型,net0 只是 clip_model 的引用，它们指向同一块 GPU 上的内存
+    # net0 = torch.nn.DataParallel(net0).cuda()
 
     # 冻结图像编码器的参数
     for param in clip_model.visual.parameters():
@@ -199,9 +228,11 @@ def main_worker(options):
 
     options['patch_size'] = 56 
     
-    normalization = preprocess.transforms[-1]
+    normalization = preprocess.transforms[-1]# 从 preprocess 变换列表中提取最后一个变换（通常是归一化）
     prompt_size = options['patch_size']
     prompt = PromptCLIP(prompt_size, clip_model, classes_names)
+
+    # prompt = torch.nn.DataParallel(prompt).cuda()
 
     # Loss
     options.update(
@@ -247,6 +278,8 @@ def main_worker(options):
     best_results = {}
     for epoch in range(options['max_epoch']):
         print("==> Epoch {}/{}".format(epoch+1, options['max_epoch']))
+        # with open(log_txt_path, 'a') as f:
+        #     f.write("==> Epoch {}/{}".format(epoch+1, options['max_epoch']) + '\n')
         if epoch == 0:
             _, logits_list, [cy,cx] = train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, contrastive_loss, optimizer, trainloader, epoch=epoch, **options)
             options['patch_position'] = [cy,cx]
@@ -278,7 +311,7 @@ def main_worker(options):
 if __name__ == '__main__':
     args = parser.parse_args()
     options = vars(args)
-    options['dataroot'] = os.path.join(options['dataroot'], options['dataset'])
+    # options['dataroot'] = os.path.join(options['dataroot'], options['dataset'])
     img_size = 224
     results = dict()
     
@@ -315,10 +348,18 @@ if __name__ == '__main__':
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
+        # if options['dataset'] == 'cifar100':
+        #     file_name = '{}_{}.csv'.format(options['dataset'], options['out_num'])
+        # else:
+        #     file_name = options['dataset'] + '.csv'
+
+
+        # timestamp = datetime.now().strftime("%y%m%d-%H%M")
+
         if options['dataset'] == 'cifar100':
-            file_name = '{}_{}.csv'.format(options['dataset'], options['out_num'])
+            file_name = '{}_{}_{}.csv'.format(options['dataset'], options['out_num'], timestamp)
         else:
-            file_name = options['dataset'] + '.csv'
+            file_name = '{}_{}.csv'.format(options['dataset'], timestamp)
 
         res = main_worker(options)
         res['unknown'] = unknown

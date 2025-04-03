@@ -26,10 +26,10 @@ class MYARPLoss(nn.CrossEntropyLoss):
 
 
     def forward(self, x, y, my_center, labels=None):
-        my_center = my_center.float()
-        dist_dot_p = self.Dist(x, center=my_center, metric='dot') 
-        dist_l2_p = self.Dist(x, center=my_center) 
-        logits = dist_l2_p - dist_dot_p 
+        my_center = my_center.float() # x为图像嵌入，my_center为负视觉表示
+        dist_dot_p = self.Dist(x, center=my_center, metric='dot') # 点积越大，表示 x 与 my_center 方向越相似，即 x 更接近该类中心
+        dist_l2_p = self.Dist(x, center=my_center) # 衡量 x 到 my_center 的欧式距离，越小表示 x 越靠近该类中心
+        logits = dist_l2_p - dist_dot_p  # 距离大，方向不相似，预测概率大
 
         if labels is None: return logits, 0
         loss = F.cross_entropy(logits / self.temp, labels) 

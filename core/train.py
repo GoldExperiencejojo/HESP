@@ -3,6 +3,7 @@ from utils import AverageMeter
 import clip
 import numpy as np
 import cv2
+import antiprompt
 
 def returnCAM(feature_conv, weight_softmax, class_idx):
     b, c, h, w = feature_conv.shape  
@@ -27,7 +28,7 @@ def train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, con
         if options['use_gpu']:
             frames, labels = frames.cuda(), labels.cuda()
 
-        if epoch == 0 and flag_attention:
+        if epoch == 0 and flag_attention:#仅在 epoch=0 计算注意力可视化，后续不再执行
             flag_attention = False
             fc0 = torch.nn.Linear(768, options['num_classes']).cuda()
             
@@ -38,17 +39,21 @@ def train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, con
             label_text = clip.tokenize(options['classes_names']).cuda()
             text_embedding = net0.encode_text(label_text)
 
+            # 已知分类视觉特征
             x_visual = visual_embedding / visual_embedding.norm(dim=-1, keepdim=True)
+            # 已知分类文本特征
             x_text = text_embedding / text_embedding.norm(dim=-1, keepdim=True)
 
             logit_scale = net0.logit_scale.exp()
             clip_logits = logit_scale * x_visual @ x_text.t()
             output = clip_logits
+
             features = features.detach().cpu().numpy() 
-            pred = torch.nn.functional.softmax(output, dim=1).data.squeeze()
-            probs, idx = pred.sort(0, True)    
+            pred = torch.nn.functional.softmax(output, dim=1).data.squeeze() # 第i个视频的已知类别预测
+            probs, idx = pred.sort(0, True)    # 按照概率降序排列  .cpu().numpy() 转换为 NumPy 格式
             probs = probs.cpu().numpy() 
-            idx = idx.cpu().numpy() 
+            idx = idx.cpu().numpy() # idx 存储排序后的类别索引（即预测类别）
+            # 计算 Class Activation Map (CAM)
             CAMs = returnCAM(features, fc_weights, [idx[0]])
 
             img = frames[0,0,:,:,:].cpu().numpy().transpose(1,2,0)
@@ -59,6 +64,7 @@ def train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, con
             output_path = 'attention/new/' + options['ids'] +'.jpg'
             cv2.imwrite(output_path, result)
 
+            # 计算最显著（最红）区域 expression-sensitive mask
             hsv_image = cv2.cvtColor(heatmap, cv2.COLOR_BGR2HSV)
 
             # 定义红色的范围
@@ -90,7 +96,7 @@ def train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, con
 
         with torch.set_grad_enabled(True):
             optimizer.zero_grad()
-            
+            # 对于可学习的表示ΔV（q），我们从MI（Q）指示的表达敏感区域上的像素扰动开始，然后在训练过程中优化ΔV（q）内的参数。
             noise = prompt.perturbation.cuda()
             noise = noise.repeat(frames.size(0), 1, 1, 1)
             noise.retain_grad()
@@ -110,21 +116,22 @@ def train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, con
             for i in range(8):
                 frames[:, i, :, row-half_patch_size:row+half_patch_size, col-half_patch_size:col+half_patch_size] = frames[:, i, :, row-half_patch_size:row+half_patch_size, col-half_patch_size:col+half_patch_size] + noise      
                               
-            frames = normalization(frames)
+            frames = normalization(frames) # 对视频帧上的表情区域敏感的精细视觉输入 VH，i
             frames.require_grad = True
             
             frames = frames.view(-1,c,h,w)
             clip_logits, visual_embedding = prompt(frames,b,t)
             clip_loss_k = prompt_CEloss(clip_logits, labels)
             
-            clip_pro = torch.softmax(clip_logits, dim=-1)
+            clip_pro = torch.softmax(clip_logits, dim=-1) # 遵循clip的预测结果
             max_c_pro = clip_pro.data.max(1)[0]
-
+            # 负向文本提示只是用来训练负向视觉提示，在推理过程中用不到
             unclass_text_prompt = "This video is not "
-            # 在每个单词前添加prompt
-            unclass_text = [unclass_text_prompt + word + "." for word in options['classes_names']]
+            # 在每个单词前添加prompt 针对开放集数据的负向文本提示
+            unclass_text = [unclass_text_prompt + word + "." + antiprompt.anti_facial_expressions[word] for word in options['classes_names']]
             unclass_text_token = clip.tokenize(unclass_text).cuda()
             unknown_p_t_features = prompt.text_encoder(unclass_text_token)
+            # 对开放集数据进行负向视觉提示
             unknown_p_v = criterion.unknown_p_v
             unknown_p_v_features = prompt.image_encoder(unknown_p_v)
             
@@ -135,21 +142,21 @@ def train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, con
             unclass_prompt_logits = logit_scale * unclass_image_features @ unclass_text_features.t()
             class_label = list(range(options['num_classes']))
             class_label = torch.tensor(class_label).cuda()
-            clip_loss_unclass = prompt_CEloss(unclass_prompt_logits, class_label)
+            clip_loss_unclass = prompt_CEloss(unclass_prompt_logits, class_label) # 未知类别交叉熵损失
             
             my_center = unknown_p_v_features
 
             c_loss = contrastive_loss(visual_embedding, labels)
-                    
+
             visual_embedding = visual_embedding.float()
             y = prompt.fc(visual_embedding)
-            logits, osr_loss = criterion(visual_embedding, y, my_center, labels)
-            a_pro = torch.softmax(logits, dim=-1)
+            logits, osr_loss = criterion(visual_embedding, y, my_center, labels) # MYARPLoss（LNE） logits（PNE）越大预测概率越大，也就是图像嵌入表示与负视觉表示越不一样（方向越不一致，欧式距离越大），预测概率越大
+            a_pro = torch.softmax(logits, dim=-1) # 基于负表示的预测；遇到未知类别，预测概率会比较小
             max_a_pro = a_pro.data.max(1)[0]
                         
             votes = torch.stack([clip_logits, logits])
-            e_pred = torch.argmax(votes.mean(dim=0), dim=1)
-            loss_e = prompt_CEloss(votes.mean(dim=0), labels)
+            e_pred = torch.argmax(votes.mean(dim=0), dim=1)# 已知类别预测与负表示预测取平均值得出总体类别预测
+            loss_e = prompt_CEloss(votes.mean(dim=0), labels)# 总体类别预测的交叉熵损失
             
             votes_pro = torch.stack([clip_pro, a_pro])
             max_e_pro = votes_pro.mean(dim=0).data.max(1)[0]
@@ -171,6 +178,7 @@ def train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, con
             g_norm = torch.norm(grad_p_t.view(-1), dim=0).view(1, 1, 1)
             scaled_g = grad_p_t / (g_norm + 1e-10)
             updated_pad = scaled_g * 50 
+            # prompt.perturbation.data = prompt.perturbation.data - updated_pad.detach().cpu()
             prompt.perturbation.data = prompt.perturbation.data - updated_pad.detach().cpu()
             prompt.zero_grad()
             

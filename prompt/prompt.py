@@ -182,7 +182,7 @@ class PromptCLIP(torch.nn.Module):
         delta = torch.zeros((3, prompt_size, prompt_size))
         delta.require_grad = True
         self.perturbation = torch.nn.Parameter(
-            delta.float(), requires_grad=True)
+            delta.float(), requires_grad=True)# 视频提示
         
         self.clip_model = clip_model
         self.prompt_learner = PromptLearner(self.clip_model, classnames)

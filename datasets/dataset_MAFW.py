@@ -96,11 +96,12 @@ class VideoDataset(data.Dataset):
         for seg_ind in indices:
             p = int(seg_ind)
             for i in range(self.duration):
-                # try:
-                seg_imgs = [Image.open(os.path.join(video_frames_path[p])).convert('RGB')]
-                # except:
-                #     print('')
-                images.extend(seg_imgs)
+                try:
+                    seg_imgs = [Image.open(os.path.join(video_frames_path[p])).convert('RGB')]
+                    images.extend(seg_imgs)
+                except:
+                    print(record.path)
+                # images.extend(seg_imgs)
                 if p < record.num_frames - 1:
                     p += 1
 
