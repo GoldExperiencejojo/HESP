@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from loss.MYDist import MYDist
-import clip
+from model import longclip as clip
 
 class MYARPLoss(nn.CrossEntropyLoss):
     def __init__(self, **options):

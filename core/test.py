@@ -4,6 +4,8 @@ import torch
 from core import evaluation
 
 def test(prompt, normalization, criterion, testloader, outloader, epoch=None, **options):
+    torch.cuda.empty_cache()
+    torch.cuda.ipc_collect()
     correct_a, correct_c, correct_e, total = 0, 0, 0, 0
     torch.cuda.empty_cache()
     all_correct, all_total = 0, 0

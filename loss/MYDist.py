@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
-import clip
+
 
 class MYDist(nn.Module):
     def __init__(self, num_classes=10, num_centers=1, feat_dim=2, classes_names=None, init='random'):

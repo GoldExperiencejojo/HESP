@@ -1,28 +1,32 @@
 import os
-os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:64"
 # print("os.environ['CUDA_LAUNCH_BLOCKING']=" + os.environ['CUDA_LAUNCH_BLOCKING'])
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 import argparse
 import datetime
 import time
-import csv
 import pandas as pd
 import importlib
 from torch.utils.tensorboard import SummaryWriter
 import torch
 from torch.optim import lr_scheduler
 import torch.backends.cudnn as cudnn
-
-from utils import Logger, save_networks, load_networks
+from model import longclip
+# print(torch.cuda.device_count())
+from utils import save_networks, load_networks
 from core import train, test
 
 from prompt.prompt import *
 
 from loss.ConLoss import *
+# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:64"
 
-import clip
+torch.cuda.empty_cache()
+# import clip
 
-from datasets.dataset_MAFW import train_data_loader, test_data_loader, out_data_loader 
+from datasets.dataset_MAFW import train_data_loader, test_data_loader, out_data_loader
 
 parser = argparse.ArgumentParser("Training")
 
@@ -33,7 +37,7 @@ parser.add_argument('--outf', type=str, default='./log')
 parser.add_argument('--workers', type=int, default=4, help='workers')
 
 # optimization
-parser.add_argument('--batch-size', type=int, default=64)
+parser.add_argument('--batch-size', type=int, default=48)
 parser.add_argument('--lr', type=float, default=0.01, help="learning rate for model")
 parser.add_argument('--max-epoch', type=int, default=100)
 parser.add_argument('--stepsize', type=int, default=30)
@@ -49,7 +53,7 @@ parser.add_argument('--model', type=str, default='HESP')
 parser.add_argument('--eval-freq', type=int, default=1)
 parser.add_argument('--print-freq', type=int, default=20)
 parser.add_argument('--gpu', type=str, default='0')
-parser.add_argument('--seed', type=int, default=10)
+parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--use-cpu', action='store_true')
 parser.add_argument('--save-dir', type=str, default='../log')
 parser.add_argument('--loss', type=str, default='MYARPLoss')
@@ -83,7 +87,7 @@ def main_worker(options):
     os.environ['CUDA_VISIBLE_DEVICES'] = options['gpu']
     use_gpu = torch.cuda.is_available()
     if options['use_cpu']: use_gpu = False
-    
+
     known = options['known']
     unknown = options['unknown']
 
@@ -198,19 +202,21 @@ def main_worker(options):
                                                 shuffle=False,
                                                 num_workers=args.workers,
                                                 pin_memory=True)
-    
+
 
     options['num_classes'] = len(known)
     options['ids'] = ''.join(str(x) for x in options['known'])
 
-    clip_model, preprocess = clip.load("ViT-B/32") 
+    # clip_model, preprocess = clip.load("ViT-B/32")
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    clip_model, preprocess = longclip.load("./LongCLIP/checkpoints/longclip-B.pt", device='cuda')
     feat_dim = 512
-    
+
     classes_names = list(set(train_data.label_text))
     classes_names.sort()
-    options['classes_names']=classes_names
+    options['classes_names'] = classes_names
     clip_model = clip_model.cuda()
-    net0 = clip_model.cuda() # 同一个 CLIP 模型,net0 只是 clip_model 的引用，它们指向同一块 GPU 上的内存
+    net0 = clip_model.cuda()  # 同一个 CLIP 模型,net0 只是 clip_model 的引用，它们指向同一块 GPU 上的内存
     # net0 = torch.nn.DataParallel(net0).cuda()
 
     # 冻结图像编码器的参数
@@ -220,15 +226,13 @@ def main_worker(options):
     # 冻结文本编码器的参数
     for param in clip_model.transformer.parameters():
         param.requires_grad = False
-        
 
     for param in clip_model.token_embedding.parameters():
         param.requires_grad = False
 
+    options['patch_size'] = 56
 
-    options['patch_size'] = 56 
-    
-    normalization = preprocess.transforms[-1]# 从 preprocess 变换列表中提取最后一个变换（通常是归一化）
+    normalization = preprocess.transforms[-1]  # 从 preprocess 变换列表中提取最后一个变换（通常是归一化）
     prompt_size = options['patch_size']
     prompt = PromptCLIP(prompt_size, clip_model, classes_names)
 
@@ -244,7 +248,7 @@ def main_worker(options):
 
     Loss = importlib.import_module('loss.'+options['loss'])
     criterion = getattr(Loss, options['loss'])(**options)
-    
+
     prompt_CEloss = torch.nn.CrossEntropyLoss()
     contrastive_loss = ConLoss()
 
@@ -254,7 +258,7 @@ def main_worker(options):
     model_path = os.path.join(options['outf'], 'models', options['dataset'])
     if not os.path.exists(model_path):
         os.makedirs(model_path)
-    
+
     file_name = '{}_{}_{}'.format(options['model'], options['loss'], options['item'])
 
     if options['eval']:
@@ -266,7 +270,7 @@ def main_worker(options):
 
     params_list = [{'params': prompt.parameters()},
                 {'params': criterion.parameters()}]
-    
+
     optimizer = torch.optim.SGD(params_list, lr=options['lr'], momentum=0.9, weight_decay=1e-4)
 
     if options['stepsize'] > 0:
@@ -298,7 +302,7 @@ def main_worker(options):
                 best_score = results_e['OSCR'] +  results_e['AUROC']
                 best_results = results_e
                 save_networks(prompt, model_path, file_name, criterion=criterion)
-        
+
         if options['stepsize'] > 0: scheduler.step()
 
     elapsed = round(time.time() - start_time)
@@ -314,10 +318,10 @@ if __name__ == '__main__':
     # options['dataroot'] = os.path.join(options['dataroot'], options['dataset'])
     img_size = 224
     results = dict()
-    
-    from split import splits_2024 as splits 
-    
-    for i in range(len(splits[options['dataset']])): 
+
+    from split import splits_2024 as splits
+
+    for i in range(len(splits[options['dataset']])):
         options['writer'] = SummaryWriter(f"results/{options['dataset']}_{i}")
         known = splits[options['dataset']][len(splits[options['dataset']])-i-1]
         print('known classes:', known)
@@ -325,9 +329,9 @@ if __name__ == '__main__':
             unknown = list(set(list(range(0, 7))) - set(known))
         elif options['dataset'] == 'MAFW':
             unknown = list(set(list(range(0, 11))) - set(known))
-        elif options['dataset'] == 'OURDATA': 
+        elif options['dataset'] == 'OURDATA':
             unknown = [7,8,9,10]
-        elif options['dataset'] == 'MULTIDATA': 
+        elif options['dataset'] == 'MULTIDATA':
             unknown = [7]
         elif options['dataset'] == 'DFEW':
             unknown = list(set(list(range(0, 7))) - set(known))

@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 
-from clip import clip
-from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
+# from clip import clip
+from model import longclip as clip
+from model.simple_tokenizer import SimpleTokenizer as _Tokenizer
 
 _tokenizer = _Tokenizer()
 
@@ -183,26 +184,26 @@ class PromptCLIP(torch.nn.Module):
         delta.require_grad = True
         self.perturbation = torch.nn.Parameter(
             delta.float(), requires_grad=True)# 视频提示
-        
+
         self.clip_model = clip_model
         self.prompt_learner = PromptLearner(self.clip_model, classnames)
-        
+
         self.image_encoder = self.clip_model.encode_image
         self.text_encoder = self.clip_model.encode_text
         self.logit_scale = self.clip_model.logit_scale
         self.dtype = self.clip_model.dtype
         self.fc = nn.Linear(512, len(classnames)).cuda()
-        
+        # self.fc = nn.Linear(512, len(classnames)).to(self.dtype).to(self.device())
 
     def forward(self, images,b=None,t=None):
         frames_embedding = self.image_encoder(images)
-        
+
         frames_embedding = frames_embedding.view(b,t,-1)
         visual_embedding = torch.mean(frames_embedding, dim=1)
-        
+
         prompts, tokenized_prompts = self.prompt_learner()
         text_features = self.text_encoder(prompts, tokenized_prompts, coop=True)
-        
+
         image_features = visual_embedding / visual_embedding.norm(dim=-1, keepdim=True)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
@@ -210,3 +211,38 @@ class PromptCLIP(torch.nn.Module):
         logits = logit_scale * image_features @ text_features.t()
 
         return logits, visual_embedding
+
+# class PromptCLIP(torch.nn.Module):
+#     def __init__(self, prompt_size, clip_model, classnames):
+#         super().__init__()
+#         self.clip_model = clip_model
+#         self.prompt_learner = PromptLearner(self.clip_model, classnames)
+#
+#         delta = torch.zeros((3, prompt_size, prompt_size))
+#         self.perturbation = torch.nn.Parameter(delta.float(), requires_grad=True)
+#
+#         self.image_encoder = self.get_attr("encode_image")
+#         self.text_encoder = self.get_attr("encode_text")
+#         self.logit_scale = self.get_attr("logit_scale")
+#         self.dtype = self.get_attr("dtype")
+#         self.fc = nn.Linear(512, len(classnames))  # 不加 .cuda()，由模型整体 to(device)
+#
+#     def get_attr(self, attr_name):
+#         return getattr(self.clip_model.module if hasattr(self.clip_model, "module") else self.clip_model, attr_name)
+#
+#     def forward(self, images, b=None, t=None):
+#         device = images.device
+#         frames_embedding = self.image_encoder(images)  # assumes shape: (B*T, C)
+#         frames_embedding = frames_embedding.view(b, t, -1)
+#         visual_embedding = torch.mean(frames_embedding, dim=1)
+#
+#         prompts, tokenized_prompts = self.prompt_learner()
+#         text_features = self.text_encoder(prompts, tokenized_prompts, coop=True)
+#
+#         image_features = visual_embedding / visual_embedding.norm(dim=-1, keepdim=True)
+#         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+#
+#         logit_scale = self.logit_scale.exp()
+#         logits = logit_scale * image_features @ text_features.t()
+#
+#         return logits, visual_embedding
