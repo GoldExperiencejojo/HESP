@@ -1,32 +1,26 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-# os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
-# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:64"
-# print("os.environ['CUDA_LAUNCH_BLOCKING']=" + os.environ['CUDA_LAUNCH_BLOCKING'])
-# os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 import argparse
 import datetime
 import time
+import csv
 import pandas as pd
 import importlib
 from torch.utils.tensorboard import SummaryWriter
 import torch
 from torch.optim import lr_scheduler
 import torch.backends.cudnn as cudnn
-from model import longclip
-# print(torch.cuda.device_count())
-from utils import save_networks, load_networks
+
+from utils import Logger, save_networks, load_networks
 from core import train, test
-import antiprompt
+
 from prompt.prompt import *
 
 from loss.ConLoss import *
-# os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:64"
 
-# torch.cuda.empty_cache()
 # import clip
-
-from datasets.dataset_MAFW import train_data_loader, test_data_loader, out_data_loader
+from model import longclip as clip
+from datasets.dataset_MAFW import train_data_loader, test_data_loader, out_data_loader 
 
 parser = argparse.ArgumentParser("Training")
 
@@ -37,7 +31,7 @@ parser.add_argument('--outf', type=str, default='./log')
 parser.add_argument('--workers', type=int, default=4, help='workers')
 
 # optimization
-parser.add_argument('--batch-size', type=int, default=32)
+parser.add_argument('--batch-size', type=int, default=8)
 parser.add_argument('--lr', type=float, default=0.01, help="learning rate for model")
 parser.add_argument('--max-epoch', type=int, default=100)
 parser.add_argument('--stepsize', type=int, default=30)
@@ -52,42 +46,19 @@ parser.add_argument('--model', type=str, default='HESP')
 # misc
 parser.add_argument('--eval-freq', type=int, default=1)
 parser.add_argument('--print-freq', type=int, default=20)
-parser.add_argument('--gpu', type=str, default='0')
+parser.add_argument('--gpu', type=str, default='4')
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--use-cpu', action='store_true')
 parser.add_argument('--save-dir', type=str, default='../log')
 parser.add_argument('--loss', type=str, default='MYARPLoss')
 parser.add_argument('--eval', action='store_true', help="Eval", default=False)
 
-# 获取当前时间，格式化为 "YYYYMMDD_HHMMSS"
-now = datetime.datetime.now()
-timestamp = now.strftime("%y%m%d-%H%M")
-print("datetime is " + timestamp)
-
 def main_worker(options):
-    # now = datetime.datetime.now()
-    # time_str = now.strftime("%y%m%d-%H%M")
-    # print(time_str)
-
-    print('************************')
-    for k, v in options.items():
-        print(k, '=', v)
-    print('************************')
-
-    # with open(log_txt_path, 'a') as f:
-    #     for k, v in options.items():
-    #         f.write(str(k) + '=' + str(v) + '\n')
-
-    # print("*********** MAFW Dataset Fold  " + " ***********")
-    # log_txt_path = './log/' + 'MAFW-' + time_str + '-set'  + '-log.txt'
-    # checkpoint_path = './checkpoint/' + 'MAFW-' + time_str + '-set'  + '-model.pth'
-    # best_checkpoint_path = './checkpoint/' + 'MAFW-' + time_str + '-set'  + '-model_best.pth'
-
     torch.manual_seed(options['seed'])
     # os.environ['CUDA_VISIBLE_DEVICES'] = options['gpu']
     use_gpu = torch.cuda.is_available()
     if options['use_cpu']: use_gpu = False
-
+    
     known = options['known']
     unknown = options['unknown']
 
@@ -100,8 +71,6 @@ def main_worker(options):
 
     # Dataset
     print("{} Preparation".format(options['dataset']))
-    # with open(log_txt_path, 'a') as f:
-    #     f.write("{} Preparation".format(options['dataset']))
     if 'AFEW' in options['dataset']:
         train_data = train_data_loader(known, unknown)
         test_data = test_data_loader(known, unknown)
@@ -202,22 +171,19 @@ def main_worker(options):
                                                 shuffle=False,
                                                 num_workers=args.workers,
                                                 pin_memory=True)
-
+    
 
     options['num_classes'] = len(known)
     options['ids'] = ''.join(str(x) for x in options['known'])
 
-    # clip_model, preprocess = clip.load("ViT-B/32")
-    # device = "cuda" if torch.cuda.is_available() else "cpu"
-    clip_model, preprocess = longclip.load("./LongCLIP/checkpoints/longclip-B.pt", device='cuda')
+    clip_model, preprocess = clip.load("./LongCLIP/checkpoints/longclip-B.pt")
     feat_dim = 512
-
+    
     classes_names = list(set(train_data.label_text))
     classes_names.sort()
-    options['classes_names'] = classes_names
+    options['classes_names']=classes_names
     clip_model = clip_model.cuda()
-    net0 = clip_model.cuda()  # 同一个 CLIP 模型,net0 只是 clip_model 的引用，它们指向同一块 GPU 上的内存
-    # net0 = torch.nn.DataParallel(net0).cuda()
+    net0 = clip_model.cuda()
 
     # 冻结图像编码器的参数
     for param in clip_model.visual.parameters():
@@ -226,23 +192,17 @@ def main_worker(options):
     # 冻结文本编码器的参数
     for param in clip_model.transformer.parameters():
         param.requires_grad = False
+        
 
     for param in clip_model.token_embedding.parameters():
         param.requires_grad = False
 
-    options['patch_size'] = 56
 
-    normalization = preprocess.transforms[-1]  # 从 preprocess 变换列表中提取最后一个变换（通常是归一化）
+    options['patch_size'] = 56 
+    
+    normalization = preprocess.transforms[-1]
     prompt_size = options['patch_size']
-    classes_names_ds = ["This video is " + word+ "." + antiprompt.facial_expressions[word] for word in
-                    options['classes_names']]
-    # classes_names_ds = [antiprompt.facial_expressions[word] for word in
-    #                 options['classes_names']]
-    print(classes_names_ds)
-    # prompt = PromptCLIP(prompt_size, clip_model, classes_names, ad_t=False)
-    prompt = PromptCLIP(prompt_size, clip_model, classes_names, visual_length=8,
-                        visual_width=512, visual_head=1, visual_layers=1, attn_window=8, ad_v=True, ad_t=False, coop=True)
-    # prompt = torch.nn.DataParallel(prompt).cuda()
+    prompt = PromptCLIP(prompt_size, clip_model, classes_names)
 
     # Loss
     options.update(
@@ -254,7 +214,7 @@ def main_worker(options):
 
     Loss = importlib.import_module('loss.'+options['loss'])
     criterion = getattr(Loss, options['loss'])(**options)
-
+    
     prompt_CEloss = torch.nn.CrossEntropyLoss()
     contrastive_loss = ConLoss()
 
@@ -264,7 +224,7 @@ def main_worker(options):
     model_path = os.path.join(options['outf'], 'models', options['dataset'])
     if not os.path.exists(model_path):
         os.makedirs(model_path)
-
+    
     file_name = '{}_{}_{}'.format(options['model'], options['loss'], options['item'])
 
     if options['eval']:
@@ -276,35 +236,8 @@ def main_worker(options):
 
     params_list = [{'params': prompt.parameters()},
                 {'params': criterion.parameters()}]
-
+    
     optimizer = torch.optim.SGD(params_list, lr=options['lr'], momentum=0.9, weight_decay=1e-4)
-    # graph_modules = list(prompt.gc1.parameters()) + \
-    #                 list(prompt.gc2.parameters()) + \
-    #                 list(prompt.gc3.parameters()) + \
-    #                 list(prompt.gc4.parameters()) + \
-    #                 list(prompt.linear.parameters()) + \
-    #                 list(prompt.temporal.parameters()) + \
-    #                 list(prompt.mlp2.parameters())
-    #
-    # # 获取所有 graph_modules 的 id
-    # graph_param_ids = set(id(p) for p in graph_modules)
-    #
-    # # 从 prompt 中移除这些参数
-    # prompt_params = [p for p in prompt.parameters() if id(p) not in graph_param_ids]
-    #
-    # # 重新构建 params_list
-    # params_list = [
-    #     {'params': prompt_params},  # 去掉了 graph_modules 的 prompt 参数
-    #     {'params': criterion.parameters()},
-    #     {'params': graph_modules, 'lr': 1e-5}
-    # ]
-    #
-    # optimizer = torch.optim.SGD(
-    #     params_list,
-    #     lr=options['lr'],
-    #     momentum=0.9,
-    #     weight_decay=1e-4
-    # )
 
     if options['stepsize'] > 0:
         scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[30,60,90,120])
@@ -315,15 +248,11 @@ def main_worker(options):
     best_results = {}
     for epoch in range(options['max_epoch']):
         print("==> Epoch {}/{}".format(epoch+1, options['max_epoch']))
-        # with open(log_txt_path, 'a') as f:
-        #     f.write("==> Epoch {}/{}".format(epoch+1, options['max_epoch']) + '\n')
         if epoch == 0:
             _, logits_list, [cy,cx] = train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, contrastive_loss, optimizer, trainloader, epoch=epoch, **options)
             options['patch_position'] = [cy,cx]
-            # print(prompt.get_ratio())
         else:
             _, logits_list = train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, contrastive_loss, optimizer, trainloader, epoch=epoch, **options)
-            # print(prompt.get_ratio())
 
         if options['eval_freq'] > 0 and (epoch+1) % options['eval_freq'] == 0 or (epoch+1) == options['max_epoch']:
             print("==> Test", options['loss'])
@@ -337,7 +266,7 @@ def main_worker(options):
                 best_score = results_e['OSCR'] +  results_e['AUROC']
                 best_results = results_e
                 save_networks(prompt, model_path, file_name, criterion=criterion)
-
+        
         if options['stepsize'] > 0: scheduler.step()
 
     elapsed = round(time.time() - start_time)
@@ -350,13 +279,13 @@ def main_worker(options):
 if __name__ == '__main__':
     args = parser.parse_args()
     options = vars(args)
-    # options['dataroot'] = os.path.join(options['dataroot'], options['dataset'])
+    options['dataroot'] = os.path.join(options['dataroot'], options['dataset'])
     img_size = 224
     results = dict()
-
-    from split import splits_2024 as splits
-
-    for i in range(len(splits[options['dataset']])):
+    
+    from split import splits_2024 as splits 
+    
+    for i in range(len(splits[options['dataset']])): 
         options['writer'] = SummaryWriter(f"results/{options['dataset']}_{i}")
         known = splits[options['dataset']][len(splits[options['dataset']])-i-1]
         print('known classes:', known)
@@ -364,9 +293,9 @@ if __name__ == '__main__':
             unknown = list(set(list(range(0, 7))) - set(known))
         elif options['dataset'] == 'MAFW':
             unknown = list(set(list(range(0, 11))) - set(known))
-        elif options['dataset'] == 'OURDATA':
+        elif options['dataset'] == 'OURDATA': 
             unknown = [7,8,9,10]
-        elif options['dataset'] == 'MULTIDATA':
+        elif options['dataset'] == 'MULTIDATA': 
             unknown = [7]
         elif options['dataset'] == 'DFEW':
             unknown = list(set(list(range(0, 7))) - set(known))
@@ -387,18 +316,10 @@ if __name__ == '__main__':
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
-        # if options['dataset'] == 'cifar100':
-        #     file_name = '{}_{}.csv'.format(options['dataset'], options['out_num'])
-        # else:
-        #     file_name = options['dataset'] + '.csv'
-
-
-        # timestamp = datetime.now().strftime("%y%m%d-%H%M")
-
         if options['dataset'] == 'cifar100':
-            file_name = '{}_{}_{}.csv'.format(options['dataset'], options['out_num'], timestamp)
+            file_name = '{}_{}.csv'.format(options['dataset'], options['out_num'])
         else:
-            file_name = '{}_{}.csv'.format(options['dataset'], timestamp)
+            file_name = options['dataset'] + '.csv'
 
         res = main_worker(options)
         res['unknown'] = unknown

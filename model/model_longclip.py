@@ -485,7 +485,8 @@ class CLIP(nn.Module):
     def encode_text(self, text, prompts=None, coop=False):
         if prompts is not None:###text prompt
             if coop:
-                x = text + self.positional_embedding.type(self.dtype)
+                x = text + self.positional_embedding.type(self.dtype)# 原
+                # x = self.token_embedding(text).type(self.dtype)
                 x = x + (self.positional_embedding.to(x.device) * self.mask1.to(x.device)).type(self.dtype).to(
                     x.device) + (self.positional_embedding_res.to(x.device) * self.mask2.to(x.device)).type(
                     self.dtype).to(x.device)
@@ -500,7 +501,8 @@ class CLIP(nn.Module):
 
                 return x
             else:
-                x = prompts + self.positional_embedding.type(self.dtype)
+                x = prompts + self.positional_embedding.type(self.dtype)# 原
+                # x = self.token_embedding(prompts).type(self.dtype)
                 x = x + (self.positional_embedding.to(x.device) * self.mask1.to(x.device)).type(self.dtype).to(
                     x.device) + (self.positional_embedding_res.to(x.device) * self.mask2.to(x.device)).type(
                     self.dtype).to(x.device)

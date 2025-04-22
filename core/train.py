@@ -38,7 +38,7 @@ def train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, con
 
             img = frames[0, 0, :, :, :].unsqueeze(0)
             fc_weights = fc0.weight.detach().cpu().numpy()
-            net0.eval()
+            net0.eval()# 用CLIP的视觉编码器（net0）来提取CAM，并使用结果来获得表达敏感区域。基于CAM结果，我们找到一个得分较高的矩形区域，并将该区域内的掩膜值设置为1，其他值保持为0
             visual_embedding, features = net0.encode_image(img, True)
             label_text = clip.tokenize(options['classes_names']).cuda()
             text_embedding = net0.encode_text(label_text)
@@ -127,7 +127,7 @@ def train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, con
             frames.require_grad = True
 
             frames = frames.view(-1, c, h, w)
-            clip_logits, visual_embedding = prompt(frames, b, t)
+            clip_logits, visual_embedding = prompt(frames, b, t) # 将融合后的视觉表示进行前向传播
             clip_loss_k = prompt_CEloss(clip_logits, labels)
 
             clip_pro = torch.softmax(clip_logits, dim=-1)  # 遵循clip的预测结果
@@ -150,7 +150,7 @@ def train(net0, preprocess, prompt, normalization, criterion, prompt_CEloss, con
             unclass_prompt_logits = logit_scale * unclass_image_features @ unclass_text_features.t()
             class_label = list(range(options['num_classes']))
             class_label = torch.tensor(class_label).cuda()
-            clip_loss_unclass = prompt_CEloss(unclass_prompt_logits, class_label)  # 未知类别交叉熵损失
+            clip_loss_unclass = prompt_CEloss(unclass_prompt_logits, class_label)  # 未知类别交叉熵损失（clip损失）
 
             my_center = unknown_p_v_features
 

@@ -89,7 +89,7 @@
       <paths name="suyf@192.168.1.239:22 password (12)">
         <serverdata>
           <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/home/suyf/code/HESP" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>

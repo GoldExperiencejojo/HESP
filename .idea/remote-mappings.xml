@@ -10,6 +10,13 @@
             </list>
           </settings>
         </remote-mappings>
+        <remote-mappings server-id="python@sftp://suyf@192.168.1.239:22/home/suyf/miniconda3/envs/VideoLLaVA/bin/python3.10">
+          <settings>
+            <list>
+              <mapping local-root="$PROJECT_DIR$" remote-root="/home/suyf/code/HESP" />
+            </list>
+          </settings>
+        </remote-mappings>
       </list>
     </list>
   </component>
